@@ -1,0 +1,19 @@
+<Application x:Class="Launchy.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <LinearGradientBrush x:Key="BrandGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#4F8BFF" Offset="0" />
+            <GradientStop Color="#A35CFF" Offset="1" />
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="WordmarkGradient" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#FFFFFF" Offset="0" />
+            <GradientStop Color="#C3CCFF" Offset="1" />
+        </LinearGradientBrush>
+
+        <!-- The logo's "L": a bent arrow. Shared by the wordmark and the tray icon. -->
+        <Geometry x:Key="LogoArrowGeometry">M0,0 H6 V22 H15 V18 L23,25 L15,32 V28 H0 Z</Geometry>
+    </Application.Resources>
+</Application>
