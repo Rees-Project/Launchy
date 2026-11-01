@@ -1,0 +1,12 @@
+<UserControl x:Class="Launchy.LogoMark"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- The "L" is a bent arrow whose head points into the rest of the word. -->
+    <StackPanel Orientation="Horizontal">
+        <Path Data="{StaticResource LogoArrowGeometry}"
+              Fill="{StaticResource BrandGradient}" Stroke="{StaticResource BrandGradient}"
+              StrokeThickness="1" StrokeLineJoin="Round" VerticalAlignment="Bottom" />
+        <TextBlock Text="aunchy" FontSize="18" FontWeight="SemiBold" Margin="2,0,0,0"
+                   Foreground="{StaticResource WordmarkGradient}" VerticalAlignment="Bottom" />
+    </StackPanel>
+</UserControl>
