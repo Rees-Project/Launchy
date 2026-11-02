@@ -51,6 +51,8 @@
                     <Border Width="1" Height="14" Background="#33FFFFFF" Margin="12,0,6,0" />
                     <Button Content="Edit" Style="{StaticResource HeaderButton}" Margin="0"
                             ToolTip="Add, edit or remove commands" Click="Edit_Click" />
+                    <Button Content="Keybinds" Style="{StaticResource HeaderButton}"
+                            ToolTip="View and change keyboard shortcuts" Click="Keybinds_Click" />
                 </StackPanel>
                 <Button DockPanel.Dock="Right" Content="✕" Style="{StaticResource HeaderButton}"
                         ToolTip="Close (Esc)" Click="Close_Click" />

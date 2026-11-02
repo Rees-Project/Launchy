@@ -1,22 +1,11 @@
 using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Launchy.Models;
 
 namespace Launchy.Services;
 
 public sealed class CommandStore
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
-    };
-
-    public static string DataDirectory { get; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Launchy");
-
-    public string CommandsPath { get; } = Path.Combine(DataDirectory, "commands.json");
+    public string CommandsPath { get; } = DataFiles.PathFor("commands.json");
 
     public IReadOnlyList<LaunchCommand> Load()
     {
@@ -25,20 +14,11 @@ public sealed class CommandStore
             Save(DefaultCommands());
         }
 
-        var file = JsonSerializer.Deserialize<CommandFile>(File.ReadAllText(CommandsPath), JsonOptions);
-        return file?.Commands ?? [];
+        return DataFiles.Read<CommandFile>(CommandsPath)?.Commands ?? [];
     }
 
-    public void Save(IEnumerable<LaunchCommand> commands)
-    {
-        Directory.CreateDirectory(DataDirectory);
-        var file = new CommandFile { Commands = commands.ToList() };
-
-        // Write to a temp file first so a crash never leaves a half-written commands.json.
-        var tempPath = CommandsPath + ".tmp";
-        File.WriteAllText(tempPath, JsonSerializer.Serialize(file, JsonOptions));
-        File.Move(tempPath, CommandsPath, overwrite: true);
-    }
+    public void Save(IEnumerable<LaunchCommand> commands) =>
+        DataFiles.Write(CommandsPath, new CommandFile { Commands = commands.ToList() });
 
     /// <summary>
     /// Returns the exact match for <paramref name="text"/>, or the only command starting with it.

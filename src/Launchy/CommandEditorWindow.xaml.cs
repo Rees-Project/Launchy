@@ -53,6 +53,56 @@ public partial class CommandEditorWindow : Window
         }
     }
 
+    private void Import_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = CsvFilter };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            CommandsGrid.CommitEdit(DataGridEditingUnit.Row, true);
+            var imported = CommandCsv.Import(dialog.FileName);
+            var added = CommandCsv.NewCommands(_rows, imported);
+            foreach (var row in added)
+            {
+                _rows.Add(row);
+            }
+
+            var skipped = imported.Count - added.Count;
+            StatusText.Text = $"Imported {added.Count} command(s)" +
+                (skipped > 0 ? $", skipped {skipped} duplicate(s)" : "") + ". Press Save to keep them.";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException)
+        {
+            StatusText.Text = $"Couldn't import: {ex.Message}";
+        }
+    }
+
+    private void Export_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog { Filter = CsvFilter, FileName = "launchy-commands.csv" };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            CommandsGrid.CommitEdit(DataGridEditingUnit.Row, true);
+            CommandCsv.Export(dialog.FileName, _rows);
+            StatusText.Text = $"Exported {_rows.Count} command(s).";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            StatusText.Text = $"Couldn't export: {ex.Message}";
+        }
+    }
+
+    private const string CsvFilter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*";
+
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         if (TrySave())

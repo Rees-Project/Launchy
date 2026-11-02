@@ -2,19 +2,20 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using Launchy.Models;
 
 namespace Launchy.Services;
 
 public sealed class HotkeyService : IDisposable
 {
     private const int WmHotkey = 0x0312;
-    private const int HotkeyId = 0x4C41;
+    private const int HotkeyIdBase = 0x4C41;
     private const uint ModNoRepeat = 0x4000;
 
     private readonly HwndSource _source;
-    private bool _registered;
+    private readonly HashSet<HotkeyAction> _registered = [];
 
-    public event EventHandler? Pressed;
+    public event EventHandler<HotkeyAction>? Pressed;
 
     public HotkeyService(Window owner)
     {
@@ -24,38 +25,56 @@ public sealed class HotkeyService : IDisposable
     }
 
     /// <returns>False when another app already owns the combination.</returns>
-    public bool Register(ModifierKeys modifiers, Key key)
+    public bool Register(HotkeyAction action, Hotkey hotkey)
     {
-        Unregister();
+        Unregister(action);
 
         // WPF's ModifierKeys values match the Win32 MOD_* flags.
-        var mods = (uint)modifiers | ModNoRepeat;
-        var vk = (uint)KeyInterop.VirtualKeyFromKey(key);
-        _registered = RegisterHotKey(_source.Handle, HotkeyId, mods, vk);
-        return _registered;
+        var mods = (uint)hotkey.Modifiers | ModNoRepeat;
+        var vk = (uint)KeyInterop.VirtualKeyFromKey(hotkey.Key);
+        if (!RegisterHotKey(_source.Handle, IdFor(action), mods, vk))
+        {
+            return false;
+        }
+
+        _registered.Add(action);
+        return true;
     }
 
-    public void Unregister()
+    public void Unregister(HotkeyAction action)
     {
-        if (_registered)
+        if (_registered.Remove(action))
         {
-            UnregisterHotKey(_source.Handle, HotkeyId);
-            _registered = false;
+            UnregisterHotKey(_source.Handle, IdFor(action));
+        }
+    }
+
+    public void UnregisterAll()
+    {
+        foreach (var action in _registered.ToList())
+        {
+            Unregister(action);
         }
     }
 
     public void Dispose()
     {
-        Unregister();
+        UnregisterAll();
         _source.RemoveHook(WndProc);
     }
 
+    private static int IdFor(HotkeyAction action) => HotkeyIdBase + (int)action;
+
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WmHotkey && wParam.ToInt32() == HotkeyId)
+        if (msg == WmHotkey)
         {
-            Pressed?.Invoke(this, EventArgs.Empty);
-            handled = true;
+            var action = (HotkeyAction)(wParam.ToInt32() - HotkeyIdBase);
+            if (_registered.Contains(action))
+            {
+                Pressed?.Invoke(this, action);
+                handled = true;
+            }
         }
 
         return IntPtr.Zero;

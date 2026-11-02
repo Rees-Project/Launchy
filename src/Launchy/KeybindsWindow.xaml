@@ -1,0 +1,66 @@
+<Window x:Class="Launchy.KeybindsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Launchy"
+        Title="Launchy — Keybinds"
+        Width="620" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1F24"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <Viewbox Height="30">
+                <local:LogoMark />
+            </Viewbox>
+            <Border Width="1" Height="20" Background="#33FFFFFF" Margin="14,0" VerticalAlignment="Center" />
+            <TextBlock Text="Keybinds" FontSize="20" FontWeight="SemiBold"
+                       Foreground="#F2F2F2" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock DockPanel.Dock="Top" Foreground="#9AA0A6" Margin="0,0,0,12" TextWrapping="Wrap"
+                   Text="These shortcuts work from any app. Click Change, then press the new combination. It must include Ctrl, Alt, Shift or Win." />
+
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0" LastChildFill="False">
+            <TextBlock x:Name="StatusText" DockPanel.Dock="Left" VerticalAlignment="Center"
+                       Foreground="#E8A33D" TextWrapping="Wrap" MaxWidth="380" />
+            <Button DockPanel.Dock="Right" Content="Save" Style="{StaticResource PrimaryButton}"
+                    Margin="0" Click="Save_Click" />
+            <Button DockPanel.Dock="Right" Content="Cancel" Click="Cancel_Click" />
+        </DockPanel>
+
+        <ItemsControl x:Name="RowsList">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Background="#23252B" BorderBrush="#33FFFFFF" BorderThickness="1"
+                            CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}" Foreground="#F2F2F2" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Description}" Foreground="#9AA0A6" FontSize="12" />
+                            </StackPanel>
+                            <Border x:Name="Badge" Grid.Column="1" CornerRadius="4" MinWidth="96"
+                                    Background="#2C2E35" BorderBrush="#44FFFFFF" BorderThickness="1"
+                                    Padding="10,4" Margin="12,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DisplayText}" Foreground="#F2F2F2"
+                                           FontWeight="SemiBold" HorizontalAlignment="Center" />
+                            </Border>
+                            <Button Grid.Column="2" Content="Change" Click="Change_Click" />
+                            <Button Grid.Column="3" Content="Reset" Margin="0" Click="Reset_Click"
+                                    ToolTip="Restore the default shortcut" />
+                        </Grid>
+                    </Border>
+                    <DataTemplate.Triggers>
+                        <DataTrigger Binding="{Binding IsCapturing}" Value="True">
+                            <Setter TargetName="Badge" Property="BorderBrush" Value="#4F8BFF" />
+                        </DataTrigger>
+                    </DataTemplate.Triggers>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DockPanel>
+</Window>

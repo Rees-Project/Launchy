@@ -14,6 +14,7 @@ public sealed class TrayIcon : IDisposable
 
     public event EventHandler? OpenRequested;
     public event EventHandler? EditRequested;
+    public event EventHandler? KeybindsRequested;
     public event EventHandler? ExitRequested;
 
     public TrayIcon(CommandStore store)
@@ -24,13 +25,14 @@ public sealed class TrayIcon : IDisposable
         menu.Items.Add("Open Launchy", null, (_, _) => OpenRequested?.Invoke(this, EventArgs.Empty));
         menu.Items.Add("Edit commands…", null, (_, _) => EditRequested?.Invoke(this, EventArgs.Empty));
         menu.Items.Add("Open commands file (JSON)", null, (_, _) => OpenCommandsFile());
+        menu.Items.Add("Keybinds…", null, (_, _) => KeybindsRequested?.Invoke(this, EventArgs.Empty));
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty));
 
         _icon = new Forms.NotifyIcon
         {
             Icon = CreateLogoIcon(),
-            Text = "Launchy (Alt+Q)",
+            Text = "Launchy",
             ContextMenuStrip = menu,
             Visible = true
         };
@@ -42,6 +44,8 @@ public sealed class TrayIcon : IDisposable
             }
         };
     }
+
+    public void SetShortcutText(string shortcut) => _icon.Text = $"Launchy ({shortcut})";
 
     private void OpenCommandsFile()
     {
