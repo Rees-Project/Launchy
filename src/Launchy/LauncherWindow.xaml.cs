@@ -20,6 +20,7 @@ public partial class LauncherWindow : Window
     private LaunchCommand? _match;
 
     public event EventHandler? EditRequested;
+    public event EventHandler? KeybindsRequested;
 
     private bool IsEditKeyword => CommandBox.Text.Trim().Equals(EditKeyword, StringComparison.OrdinalIgnoreCase);
 
@@ -100,6 +101,12 @@ public partial class LauncherWindow : Window
     {
         Hide();
         EditRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void Keybinds_Click(object sender, RoutedEventArgs e)
+    {
+        Hide();
+        KeybindsRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Hide();
