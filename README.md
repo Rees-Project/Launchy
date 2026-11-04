@@ -11,3 +11,4 @@ This webapp visually should be small and open in the middle of the screen, think
 once command is ran and enter is hit, UI should close.
 On edit (where you add your own data to the table, have 'smart options' as an assist on what might be helpfull, such as %appdata%, similiar websites, or folder struction from previous used data.
 Beatify the UI, have a dark/light mode.
+Add a splash screen on launch.
