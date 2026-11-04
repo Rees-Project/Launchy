@@ -82,7 +82,7 @@ public partial class LauncherWindow : Window
         }
         else if (text.Trim().Length == 0)
         {
-            StatusText.Text = $"{_commands.Count} commands · Enter to run · Esc to close";
+            StatusText.Text = $"{_commands.Count} commands · Enter or Tab to run · Esc to close";
         }
         else if (_match is null)
         {
@@ -91,7 +91,9 @@ public partial class LauncherWindow : Window
         else
         {
             var parameters = string.IsNullOrWhiteSpace(_match.Parameters) ? "" : $" {_match.Parameters}";
-            StatusText.Text = $"{_match.Command}  →  {_match.Type}: {_match.Location}{parameters}";
+            var others = CommandStore.CountPrefixMatches(_commands, text) - 1;
+            var more = others > 0 ? $"  (+{others} more)" : "";
+            StatusText.Text = $"{_match.Command}  →  {_match.Type}: {_match.Location}{parameters}{more}";
         }
     }
 
@@ -121,6 +123,7 @@ public partial class LauncherWindow : Window
                 break;
 
             case Key.Enter:
+            case Key.Tab:
                 e.Handled = true;
                 if (IsEditKeyword)
                 {
