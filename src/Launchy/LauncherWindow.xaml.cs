@@ -18,6 +18,8 @@ public partial class LauncherWindow : Window
     private IReadOnlyList<LaunchCommand> _commands = [];
     private string? _loadError;
     private LaunchCommand? _match;
+    private IReadOnlyList<LaunchCommand> _matches = [];
+    private int _matchIndex = -1;
 
     public event EventHandler? EditRequested;
     public event EventHandler? KeybindsRequested;
@@ -70,8 +72,29 @@ public partial class LauncherWindow : Window
     {
         var text = CommandBox.Text;
         Placeholder.Visibility = text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        _matches = CommandStore.Matches(_commands, text);
         _match = CommandStore.Find(_commands, text);
+        _matchIndex = _match is null ? -1 : 0;
+        UpdateStatus();
+    }
 
+    private void CycleMatch(int step)
+    {
+        if (_matches.Count == 0)
+        {
+            return;
+        }
+
+        _matchIndex = _matchIndex < 0
+            ? (step > 0 ? 0 : _matches.Count - 1)
+            : (_matchIndex + step + _matches.Count) % _matches.Count;
+        _match = _matches[_matchIndex];
+        UpdateStatus();
+    }
+
+    private void UpdateStatus()
+    {
+        var text = CommandBox.Text;
         if (IsEditKeyword)
         {
             StatusText.Text = "Open the command editor";
@@ -82,18 +105,17 @@ public partial class LauncherWindow : Window
         }
         else if (text.Trim().Length == 0)
         {
-            StatusText.Text = $"{_commands.Count} commands · Enter or Tab to run · Esc to close";
+            StatusText.Text = $"{_commands.Count} commands · Enter to run · Tab to switch match · Esc to close";
         }
         else if (_match is null)
         {
-            StatusText.Text = "No matching command";
+            StatusText.Text = _matches.Count > 1 ? $"{_matches.Count} matches · Tab to choose" : "No matching command";
         }
         else
         {
             var parameters = string.IsNullOrWhiteSpace(_match.Parameters) ? "" : $" {_match.Parameters}";
-            var others = CommandStore.CountPrefixMatches(_commands, text) - 1;
-            var more = others > 0 ? $"  (+{others} more)" : "";
-            StatusText.Text = $"{_match.Command}  →  {_match.Type}: {_match.Location}{parameters}{more}";
+            var position = _matches.Count > 1 ? $"  ({_matchIndex + 1} of {_matches.Count} · Tab for next)" : "";
+            StatusText.Text = $"{_match.Command}  →  {_match.Type}: {_match.Location}{parameters}{position}";
         }
     }
 
@@ -122,8 +144,12 @@ public partial class LauncherWindow : Window
                 e.Handled = true;
                 break;
 
-            case Key.Enter:
             case Key.Tab:
+                e.Handled = true;
+                CycleMatch(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1);
+                break;
+
+            case Key.Enter:
                 e.Handled = true;
                 if (IsEditKeyword)
                 {

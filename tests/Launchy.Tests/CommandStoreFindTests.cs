@@ -57,10 +57,29 @@ public class CommandStoreFindTests
     }
 
     [Fact]
-    public void CountPrefixMatches_CountsAllCommandsStartingWithText()
+    public void Matches_ReturnsAllPrefixMatchesInListOrder()
     {
-        Assert.Equal(2, CommandStore.CountPrefixMatches(Commands, "ad"));
-        Assert.Equal(1, CommandStore.CountPrefixMatches(Commands, "adrenalg"));
-        Assert.Equal(0, CommandStore.CountPrefixMatches(Commands, ""));
+        var commands = new List<LaunchCommand>
+        {
+            new() { Command = "adrenalPM", Location = "a" },
+            new() { Command = "notepad", Location = "b" },
+            new() { Command = "adrenalgit", Location = "c" },
+            new() { Command = "adrenalDocs", Location = "d" }
+        };
+        Assert.Equal(["adrenalPM", "adrenalgit", "adrenalDocs"], CommandStore.Matches(commands, "ad").Select(c => c.Command));
+        Assert.Equal(["adrenalgit"], CommandStore.Matches(commands, "adrenalg").Select(c => c.Command));
+        Assert.Empty(CommandStore.Matches(commands, "  "));
+    }
+
+    [Fact]
+    public void Matches_PutsExactMatchFirst()
+    {
+        var commands = new List<LaunchCommand>
+        {
+            new() { Command = "gitlab", Location = "x" },
+            new() { Command = "github", Location = "y" },
+            new() { Command = "git", Location = "z" }
+        };
+        Assert.Equal(["git", "gitlab", "github"], CommandStore.Matches(commands, "git").Select(c => c.Command));
     }
 }
