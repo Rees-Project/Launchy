@@ -29,36 +29,31 @@ public sealed class CommandStore
     /// </summary>
     public static LaunchCommand? Find(IReadOnlyList<LaunchCommand> commands, string text)
     {
-        text = text.Trim();
-        if (text.Length == 0)
+        var matches = Matches(commands, text);
+        if (matches.Count == 0)
         {
             return null;
         }
 
-        var exact = commands.FirstOrDefault(c => c.Command.Equals(text, StringComparison.OrdinalIgnoreCase));
-        if (exact is not null)
-        {
-            return exact;
-        }
-
-        var prefixMatches = commands
-            .Where(c => c.Command.StartsWith(text, StringComparison.OrdinalIgnoreCase))
-            .Take(2)
-            .ToList();
-        if (text.Length >= FirstMatchMinLength)
-        {
-            return prefixMatches.FirstOrDefault();
-        }
-
-        return prefixMatches.Count == 1 ? prefixMatches[0] : null;
+        var isExact = matches[0].Command.Equals(text.Trim(), StringComparison.OrdinalIgnoreCase);
+        return isExact || matches.Count == 1 || text.Trim().Length >= FirstMatchMinLength ? matches[0] : null;
     }
 
-    public static int CountPrefixMatches(IReadOnlyList<LaunchCommand> commands, string text)
+    /// <summary>
+    /// Returns every command starting with <paramref name="text"/>: an exact match first, then the rest in list order.
+    /// </summary>
+    public static IReadOnlyList<LaunchCommand> Matches(IReadOnlyList<LaunchCommand> commands, string text)
     {
         text = text.Trim();
-        return text.Length == 0
-            ? 0
-            : commands.Count(c => c.Command.StartsWith(text, StringComparison.OrdinalIgnoreCase));
+        if (text.Length == 0)
+        {
+            return [];
+        }
+
+        return commands
+            .Where(c => c.Command.StartsWith(text, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(c => c.Command.Equals(text, StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 
     private static List<LaunchCommand> DefaultCommands() =>
