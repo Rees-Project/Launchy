@@ -1,10 +1,12 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using Launchy.Models;
 using Launchy.Services;
 
@@ -21,6 +23,21 @@ public partial class LauncherWindow : Window
     private IReadOnlyList<LaunchCommand> _matches = [];
     private int _matchIndex = -1;
 
+    // After the launcher is shown, focus loss is ignored until at least MinGracePeriod has
+    // passed and the hotkey's modifiers have been released for ModifierSettleTime. Releasing
+    // Alt can make the previously focused app take the foreground back, so judging focus
+    // before then would hide the launcher the moment it appears.
+    private static readonly TimeSpan MinGracePeriod = TimeSpan.FromMilliseconds(200);
+    private static readonly TimeSpan ModifierSettleTime = TimeSpan.FromMilliseconds(100);
+    private static readonly TimeSpan MaxGracePeriod = TimeSpan.FromSeconds(2);
+
+    private readonly DispatcherTimer _graceTimer;
+    private readonly Stopwatch _graceClock = new();
+    private TimeSpan? _modifiersReleasedAt;
+    private bool _inGracePeriod;
+
+    private IntPtr Handle => new WindowInteropHelper(this).Handle;
+
     public event EventHandler? EditRequested;
     public event EventHandler? KeybindsRequested;
 
@@ -30,7 +47,10 @@ public partial class LauncherWindow : Window
     {
         InitializeComponent();
         _store = store;
-        Deactivated += (_, _) => Hide();
+        Deactivated += (_, _) => OnFocusLost();
+
+        _graceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(25) };
+        _graceTimer.Tick += GraceTimer_Tick;
     }
 
     public void ShowLauncher()
@@ -44,14 +64,70 @@ public partial class LauncherWindow : Window
         Width = Math.Clamp(area.Width * 0.2, 480, 900);
         Left = area.Left + (area.Width - Width) / 2;
 
+        _inGracePeriod = true;
+        _modifiersReleasedAt = null;
+        _graceClock.Restart();
+        _graceTimer.Start();
+
+        // ShowActivated is off in the XAML, so Show() doesn't activate the window and
+        // BringToFront activates it in one step. If Show() activated it first while another
+        // app had the foreground, ForceForeground would leave Windows unsure which window is
+        // in front, and a click outside would then never deactivate the launcher.
         Show();
         UpdateLayout();
         Top = area.Top + (area.Height - ActualHeight) / 2;
+        BringToFront();
+    }
 
-        ForegroundHelper.ForceForeground(new WindowInteropHelper(this).Handle);
+    private void BringToFront()
+    {
+        ForegroundHelper.ForceForeground(Handle);
         Activate();
         CommandBox.Focus();
         Keyboard.Focus(CommandBox);
+    }
+
+    private void GraceTimer_Tick(object? sender, EventArgs e)
+    {
+        var elapsed = _graceClock.Elapsed;
+        if (ForegroundHelper.AreModifierKeysDown())
+        {
+            _modifiersReleasedAt = null;
+        }
+        else
+        {
+            _modifiersReleasedAt ??= elapsed;
+        }
+
+        var settled = _modifiersReleasedAt is { } releasedAt
+            && elapsed >= MinGracePeriod
+            && elapsed - releasedAt >= ModifierSettleTime;
+
+        if (settled || elapsed >= MaxGracePeriod)
+        {
+            EndGracePeriod();
+        }
+    }
+
+    private void EndGracePeriod()
+    {
+        _graceTimer.Stop();
+        _inGracePeriod = false;
+
+        // WPF's IsActive can be stale here, so ask Windows. If another app took the
+        // foreground during the show, take it back so a later click outside is noticed.
+        if (IsVisible && !ForegroundHelper.IsForeground(Handle))
+        {
+            BringToFront();
+        }
+    }
+
+    private void OnFocusLost()
+    {
+        if (IsVisible && !_inGracePeriod && !ForegroundHelper.IsForeground(Handle))
+        {
+            Hide();
+        }
     }
 
     private void LoadCommands()

@@ -31,6 +31,17 @@ public static class ForegroundHelper
         }
     }
 
+    public static bool IsForeground(IntPtr hwnd) => GetForegroundWindow() == hwnd;
+
+    /// <summary>True while Alt, Ctrl, Shift or a Windows key is physically held down.</summary>
+    public static bool AreModifierKeysDown() =>
+        ModifierVirtualKeys.Any(vk => (GetAsyncKeyState(vk) & 0x8000) != 0);
+
+    private static readonly int[] ModifierVirtualKeys = [0x10, 0x11, 0x12, 0x5B, 0x5C];
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
+
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
 
