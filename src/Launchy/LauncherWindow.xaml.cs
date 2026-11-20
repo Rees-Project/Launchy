@@ -17,10 +17,13 @@ public partial class LauncherWindow : Window
     private const string EditKeyword = ":edit";
 
     private readonly CommandStore _store;
+    private readonly WorkspaceStore _workspaceStore;
     private IReadOnlyList<LaunchCommand> _commands = [];
+    private IReadOnlyList<Workspace> _workspaces = [];
+    private IReadOnlyList<LauncherEntry> _entries = [];
     private string? _loadError;
-    private LaunchCommand? _match;
-    private IReadOnlyList<LaunchCommand> _matches = [];
+    private LauncherEntry? _match;
+    private IReadOnlyList<LauncherEntry> _matches = [];
     private int _matchIndex = -1;
 
     // After the launcher is shown, focus loss is ignored until at least MinGracePeriod has
@@ -40,13 +43,20 @@ public partial class LauncherWindow : Window
 
     public event EventHandler? EditRequested;
     public event EventHandler? KeybindsRequested;
+    public event EventHandler<Workspace>? WorkspaceRequested;
+
+    public event EventHandler<Workspace>? CloseWorkspaceRequested;
+
+    private LauncherEntry? FindCloseTarget(string name) =>
+        LauncherEntry.Find([.. _entries.Where(e => e.Workspace is not null)], name);
 
     private bool IsEditKeyword => CommandBox.Text.Trim().Equals(EditKeyword, StringComparison.OrdinalIgnoreCase);
 
-    public LauncherWindow(CommandStore store)
+    public LauncherWindow(CommandStore store, WorkspaceStore workspaceStore)
     {
         InitializeComponent();
         _store = store;
+        _workspaceStore = workspaceStore;
         Deactivated += (_, _) => OnFocusLost();
 
         _graceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(25) };
@@ -142,14 +152,26 @@ public partial class LauncherWindow : Window
             _commands = [];
             _loadError = $"Couldn't read commands.json: {ex.Message}";
         }
+
+        try
+        {
+            _workspaces = _workspaceStore.Load();
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException or WorkspaceVersionException)
+        {
+            _workspaces = [];
+            _loadError ??= $"Couldn't read workspaces.json: {ex.Message}";
+        }
+
+        _entries = LauncherEntry.Build(_commands, _workspaces);
     }
 
     private void UpdateMatch()
     {
         var text = CommandBox.Text;
         Placeholder.Visibility = text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-        _matches = CommandStore.Matches(_commands, text);
-        _match = CommandStore.Find(_commands, text);
+        _matches = LauncherEntry.Matches(_entries, text);
+        _match = LauncherEntry.Find(_entries, text);
         _matchIndex = _match is null ? -1 : 0;
         UpdateStatus();
     }
@@ -175,13 +197,22 @@ public partial class LauncherWindow : Window
         {
             StatusText.Text = "Open the command editor";
         }
+        else if (CloseCommand.TryParse(text, out var closeName))
+        {
+            StatusText.Text = closeName.Length == 0
+                ? "Type a workspace name to close the windows its last run opened"
+                : FindCloseTarget(closeName) is { } target
+                    ? $"Close the windows that {target.Name} opened (Enter)"
+                    : "No matching workspace";
+        }
         else if (_loadError is not null)
         {
             StatusText.Text = _loadError;
         }
         else if (text.Trim().Length == 0)
         {
-            StatusText.Text = $"{_commands.Count} commands · Enter to run · Tab to switch match · Esc to close";
+            var workspaces = _workspaces.Count > 0 ? $" · {_workspaces.Count} workspaces" : "";
+            StatusText.Text = $"{_commands.Count} commands{workspaces} · Enter to run · Tab to switch match · Esc to close";
         }
         else if (_match is null)
         {
@@ -189,9 +220,17 @@ public partial class LauncherWindow : Window
         }
         else
         {
-            var parameters = string.IsNullOrWhiteSpace(_match.Parameters) ? "" : $" {_match.Parameters}";
             var position = _matches.Count > 1 ? $"  ({_matchIndex + 1} of {_matches.Count} · Tab for next)" : "";
-            StatusText.Text = $"{_match.Command}  →  {_match.Type}: {_match.Location}{parameters}{position}";
+            if (_match.Workspace is { } workspace)
+            {
+                StatusText.Text = $"{_match.Name}  →  {WorkspaceDisplay.ItemCountText(workspace.Items.Count)}{position}";
+            }
+            else
+            {
+                var command = _match.Command!;
+                var parameters = string.IsNullOrWhiteSpace(command.Parameters) ? "" : $" {command.Parameters}";
+                StatusText.Text = $"{command.Command}  →  {command.Type}: {command.Location}{parameters}{position}";
+            }
         }
     }
 
@@ -234,19 +273,38 @@ public partial class LauncherWindow : Window
                     return;
                 }
 
+                if (CloseCommand.TryParse(CommandBox.Text, out var closeTypedName))
+                {
+                    if (FindCloseTarget(closeTypedName)?.Workspace is { } closeWorkspace)
+                    {
+                        Hide();
+                        CloseWorkspaceRequested?.Invoke(this, closeWorkspace);
+                    }
+
+                    return;
+                }
+
                 if (_match is null)
                 {
                     return;
                 }
 
+                if (_match.Workspace is { } workspace)
+                {
+                    Hide();
+                    WorkspaceRequested?.Invoke(this, workspace);
+                    return;
+                }
+
+                var command = _match.Command!;
                 try
                 {
-                    LaunchService.Run(_match);
+                    LaunchService.Run(command);
                     Hide();
                 }
                 catch (Exception ex) when (ex is Win32Exception or NotSupportedException or InvalidOperationException)
                 {
-                    StatusText.Text = $"Couldn't open {_match.Location}: {ex.Message}";
+                    StatusText.Text = $"Couldn't open {command.Location}: {ex.Message}";
                 }
                 break;
         }

@@ -96,7 +96,7 @@ public static class CommandCsv
 
     private static string? NullIfEmpty(string value) => value.Length == 0 ? null : value;
 
-    private static void WriteRow(TextWriter writer, IEnumerable<string> fields)
+    internal static void WriteRow(TextWriter writer, IEnumerable<string> fields)
     {
         writer.Write(string.Join(",", fields.Select(Escape)));
         writer.Write("\r\n");
@@ -105,7 +105,7 @@ public static class CommandCsv
     private static string Escape(string field) =>
         field.IndexOfAny([',', '"', '\r', '\n']) >= 0 ? $"\"{field.Replace("\"", "\"\"")}\"" : field;
 
-    private static List<List<string>> ParseRows(string text)
+    internal static List<List<string>> ParseRows(string text)
     {
         var rows = new List<List<string>>();
         var row = new List<string>();

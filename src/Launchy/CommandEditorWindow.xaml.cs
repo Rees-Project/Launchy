@@ -33,6 +33,10 @@ public partial class CommandEditorWindow : Window
         }
     }
 
+    public event EventHandler? WorkspacesRequested;
+
+    private void Workspaces_Click(object sender, RoutedEventArgs e) => WorkspacesRequested?.Invoke(this, EventArgs.Empty);
+
     private void Add_Click(object sender, RoutedEventArgs e)
     {
         var row = new LaunchCommand { Type = TargetType.Application };
