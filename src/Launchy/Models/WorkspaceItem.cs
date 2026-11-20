@@ -15,6 +15,9 @@ public sealed class WorkspaceItem
     /// <summary>What the runner does when a matching window is already open. Missing in old files, so it defaults to LaunchNew.</summary>
     public IfRunning IfRunning { get; set; } = IfRunning.LaunchNew;
 
+    /// <summary>Website items only: open the URL(s) in a new browser window, not as a tab. Missing in old files, so it defaults to false.</summary>
+    public bool NewWindow { get; set; }
+
     /// <summary>All URLs of a Website item when it has more than one; <see cref="Location"/> is the first. Missing in old files.</summary>
     public List<string>? Urls { get; set; }
 

@@ -236,6 +236,7 @@ public sealed class LayoutCapture(IWindowSource source, IEnumerable<string>? bro
         Placement = item.Placement,
         TimeoutSeconds = item.TimeoutSeconds,
         Focus = item.Focus,
-        IfRunning = item.IfRunning
+        IfRunning = item.IfRunning,
+        NewWindow = item.NewWindow
     };
 }

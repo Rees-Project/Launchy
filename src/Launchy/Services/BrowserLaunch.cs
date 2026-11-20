@@ -7,8 +7,8 @@ namespace Launchy.Services;
 public sealed record BrowserCommand(string FileName, string Arguments, bool MayOpenAsTab);
 
 /// <summary>
-/// Browser knowledge for website items. Owner answer Q3 = No: launching does not use the new-window
-/// flags. The table and <see cref="BuildCommand"/> stay available for a later switch.
+/// Browser knowledge for website items. A website item opens with the plain shell open unless its
+/// "New window" setting is on; then <see cref="BuildNewWindowCommand"/> adds the browser's new-window flag.
 /// </summary>
 public static class BrowserLaunch
 {
@@ -34,6 +34,25 @@ public static class BrowserLaunch
         }
 
         return new BrowserCommand(browserExe, $"\"{url}\"", MayOpenAsTab: true);
+    }
+
+    /// <summary>
+    /// One command line that opens every URL in a new browser window. Null when the browser has no
+    /// known new-window flag, so the caller can fall back to the plain open.
+    /// </summary>
+    public static BrowserCommand? BuildNewWindowCommand(string browserExe, IEnumerable<string> urls)
+    {
+        var exeName = Path.GetFileName(browserExe);
+        foreach (var (name, flag) in NewWindowFlags)
+        {
+            if (string.Equals(exeName, name, StringComparison.OrdinalIgnoreCase))
+            {
+                var arguments = string.Join(" ", urls.Select(url => $"\"{url.Replace("\"", "%22")}\""));
+                return new BrowserCommand(browserExe, $"{flag} {arguments}", MayOpenAsTab: false);
+            }
+        }
+
+        return null;
     }
 
     /// <summary>One command line with every URL quoted and no window flag, so the browser opens them as tabs.</summary>

@@ -496,6 +496,12 @@ public partial class WorkspaceEditorWindow : Window
             set => Item.Focus = value;
         }
 
+        public bool NewWindow
+        {
+            get => Item.NewWindow;
+            set => Item.NewWindow = value;
+        }
+
         public string PlacementSummary => WorkspaceDisplay.PlacementSummary(Item.Placement);
     }
 }

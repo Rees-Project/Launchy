@@ -12,12 +12,29 @@ public static class LaunchService
 
     public static Process? Start(WorkspaceItem item)
     {
+        if (item.Type == TargetType.Website && item.NewWindow && StartWebsiteNewWindow(item.AllUrls()) is { } started)
+        {
+            return started;
+        }
+
         if (item.Type == TargetType.Website && item.AllUrls().Count > 1)
         {
             return StartWebsiteTabs(item.AllUrls());
         }
 
         return Process.Start(BuildStartInfo(item.Type, item.Location, item.Parameters, runAsAdmin: false));
+    }
+
+    /// <summary>Opens the URLs in a new window of the default browser. Null (nothing started) when the browser is unknown or has no new-window flag.</summary>
+    private static Process? StartWebsiteNewWindow(IReadOnlyList<string> urls)
+    {
+        if (BrowserLaunch.GetDefaultBrowserPath() is not { } browser
+            || BrowserLaunch.BuildNewWindowCommand(browser, urls) is not { } command)
+        {
+            return null;
+        }
+
+        return Process.Start(new ProcessStartInfo(command.FileName, command.Arguments) { UseShellExecute = true });
     }
 
     private static Process? StartWebsiteTabs(IReadOnlyList<string> urls)

@@ -111,6 +111,7 @@
                     <DataGridComboBoxColumn x:Name="IfRunningColumn" Header="If running" Width="100"
                                             SelectedItemBinding="{Binding IfRunning}" />
                     <DataGridCheckBoxColumn Header="Front" Width="60" Binding="{Binding Focus}" />
+                    <DataGridCheckBoxColumn Header="New window" Width="90" Binding="{Binding NewWindow}" />
                 </DataGrid.Columns>
             </DataGrid>
 
