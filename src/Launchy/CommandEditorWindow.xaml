@@ -52,6 +52,8 @@
             <Button DockPanel.Dock="Left" Content="Delete" Click="Delete_Click" />
             <Button DockPanel.Dock="Left" Content="Import…" Click="Import_Click" />
             <Button DockPanel.Dock="Left" Content="Export…" Click="Export_Click" />
+            <Button DockPanel.Dock="Left" Content="Workspaces…" Click="Workspaces_Click"
+                    ToolTip="Create and edit workspaces: several apps, folders and websites opened together" />
             <TextBlock x:Name="StatusText" DockPanel.Dock="Left" VerticalAlignment="Center"
                        Margin="8,0" Foreground="#E8A33D" TextTrimming="CharacterEllipsis" />
             <Button DockPanel.Dock="Right" Content="Save" Style="{StaticResource PrimaryButton}"

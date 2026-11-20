@@ -24,7 +24,9 @@ public sealed class TrayIcon : IDisposable
     private const int WmRButtonUp = 0x0205;
 
     private const uint NimAdd = 0, NimModify = 1, NimDelete = 2;
-    private const uint NifMessage = 0x01, NifIcon = 0x02, NifTip = 0x04, NifGuid = 0x20;
+    private const uint NifMessage = 0x01, NifIcon = 0x02, NifTip = 0x04, NifInfo = 0x10, NifGuid = 0x20;
+    private const uint NiifWarning = 0x02;
+    private const int MaxInfoLength = 255, MaxInfoTitleLength = 63;
     private const uint FallbackIconId = 1;
 
     private readonly CommandStore _store;
@@ -73,6 +75,15 @@ public sealed class TrayIcon : IDisposable
     {
         _tooltip = $"Launchy ({shortcut})";
         var data = NewData(NifTip);
+        Shell_NotifyIcon(NimModify, ref data);
+    }
+
+    public void ShowWarning(string title, string text)
+    {
+        var data = NewData(NifInfo);
+        data.szInfoTitle = Truncate(title, MaxInfoTitleLength);
+        data.szInfo = Truncate(text, MaxInfoLength);
+        data.dwInfoFlags = NiifWarning;
         Shell_NotifyIcon(NimModify, ref data);
     }
 
@@ -176,6 +187,9 @@ public sealed class TrayIcon : IDisposable
 
         Process.Start(new ProcessStartInfo("notepad.exe", $"\"{_store.CommandsPath}\"") { UseShellExecute = true });
     }
+
+    private static string Truncate(string text, int maxLength) =>
+        text.Length <= maxLength ? text : text[..(maxLength - 1)] + "…";
 
     /// <summary>
     /// Windows ties a tray icon GUID to one exe path, so each install location (alpha, release, a dev

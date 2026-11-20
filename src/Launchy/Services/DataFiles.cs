@@ -12,6 +12,12 @@ public static class DataFiles
         Converters = { new JsonStringEnumConverter() }
     };
 
+    private static readonly JsonSerializerOptions CompactJsonOptions = new(JsonOptions) { WriteIndented = false };
+
+    public static string ToCompactJson<T>(T value) => JsonSerializer.Serialize(value, CompactJsonOptions);
+
+    public static T? FromJson<T>(string json) => JsonSerializer.Deserialize<T>(json, JsonOptions);
+
     public static string DataDirectory { get; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Launchy");
 

@@ -9,7 +9,9 @@ don't touch the mouse or keyboard while they run.
 | `Test-LauncherFocus.ps1` | Alt+Q shows the launcher in front; a click outside or Esc hides it | ~60 s |
 | `Test-TrayIcon.ps1` | Exactly one tray icon, even after Launchy is killed and restarted; tray clicks and Exit work | ~45 s |
 
-Both print a table and end with `RESULT: PASS` (exit code 0) or `RESULT: FAIL` (exit code 1).
+| `Test-Workspace.ps1` | A workspace opens Notepad and Explorer windows at the saved positions (2 px tolerance); a second run adds new windows; maximized on DISPLAY2 and minimized work | ~60 s |
+
+All three print a table and end with `RESULT: PASS` (exit code 0) or `RESULT: FAIL` (exit code 1).
 Exit code 2 means the test couldn't run, for example because Launchy wasn't running.
 
 ## Bugs these tests cover
@@ -114,6 +116,62 @@ to Launchy's hidden `Launchy tray` window.
 
 A build from before the tray fix has no `Launchy tray` window, so checks 2, 3, 4 and 6 report it and
 fail, while check 5 still runs and shows the duplicate icons.
+
+### Test-Workspace.ps1
+
+Needs a Launchy build that has workspaces, running, with Alt+Q as the launcher key. Run it like the
+others:
+
+```powershell
+powershell -NoProfile -STA -ExecutionPolicy Bypass -File tests\manual\Test-Workspace.ps1
+```
+
+Expected: `RESULT: PASS`. Do not type while it runs.
+
+Safety: it writes a test workspace to `%APPDATA%\Launchy\workspaces.json`, after copying the real file to
+`D:\Scratchpad\Claude\launchy-workspaces\manual-test\workspaces.json.bak`. It restores the real file at the
+end, also after an error. If the script is killed, copy that `.bak` back by hand. It never changes
+`commands.json`. It closes only the windows it found as new. Before typing, it checks that the launcher
+is visible and in front. If not, it stops without typing.
+
+It uses only Notepad and Explorer, not a browser. A website opens the plain way and can become a tab in
+a browser window you already have, and the script must not close windows it did not open.
+
+1. **A: saved positions.** Workspace with an empty Notepad, an Explorer folder and a Notepad with a file.
+   Each new window's `GetWindowRect` must be within 2 px of the saved rectangle (`A1` to `A3`).
+2. **B: run again with all three open.** Launchy always starts new instances, so three more windows
+   must appear at the saved positions (`B1`, `B2`), and the first three must not move (`B3`).
+3. **C: variant.** Notepad maximized on DISPLAY2 (`C1`; on DISPLAY1 when there is no second screen,
+   and the check says so) and Explorer minimized (`C2`).
+
+`-DumpJson` prints the test workspace JSON and exits. It touches no Launchy file and presses no keys.
+
+## Hand checks for workspaces
+
+The script can't cover these. Check them by hand with a workspace made in the editor
+(Command editor, "Workspaces..." button).
+
+- **VS Code.** `code` is a launcher stub that starts another process. Expected: the new VS Code window
+  is found by its process path and placed. If it is not, the tray balloon says "window not found".
+  Record what happens.
+- **Calculator (Store app).** Close all Calculator windows. Capture a Calculator window (also try it
+  minimized), close it, run the workspace. Expected: the item location is
+  `shell:AppsFolder\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`, and Calculator opens at the captured
+  position. With Calculator already open, Calculator may not open a second window; record the result.
+- **Packaged desktop app** (for example the Claude desktop app). Capture its window. Expected: the item
+  location starts with `shell:AppsFolder\`, not `C:\Program Files\WindowsApps\...`.
+- **An app that runs as administrator** (for example one whose manifest asks for elevation). Expected:
+  a clear "window is elevated" message in the tray balloon, and the window stays where it opened.
+  Capture may skip such a window, because Launchy can't read an elevated process's path. Record what
+  happens.
+- **Portrait monitor unplugged.** Save a layout with a window on the portrait screen, unplug it, run the
+  workspace. Expected: the window lands on DISPLAY1 and is fully visible.
+- **Website item.** Expected: the URL opens the plain way, so it may open as a tab in an existing browser
+  window. No placement is expected for it.
+- **Capture.** In the workspace editor, press "Capture layout...", pick some windows, save, run the workspace
+  from Alt+Q. Expected: each window opens at the captured position.
+- **Newer file.** Put `"version": 2` in a copy of `workspaces.json`. Expected: an error that says to update
+  Launchy, and the file is not changed.
 
 ## Checking the tests still catch the bugs
 
